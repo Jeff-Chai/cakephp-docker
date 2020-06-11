@@ -1,0 +1,72 @@
+version: '3.4'
+
+# bridge
+networks:
+  frontend:
+  backend:
+
+services:
+
+  nginx:
+    container_name: nginx
+    networks:
+      - frontend
+      - backend
+    image: nginx
+    ports:
+      - "80:80"
+    environment:
+      APP_NAME: ${APPLICATION}
+    volumes:
+      - ./log/nginx:/var/log/nginx
+      - ./data/nginx/conf:/etc/nginx/conf.d
+      - ${PROJECT}:/var/www/html
+    command: /bin/bash -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/custom.template > /etc/nginx/conf.d/custom.conf && exec nginx -g 'daemon off;'"
+    depends_on:
+      - "php"
+
+  php:
+    container_name: php
+    build: ./build/php74-fpm
+    networks:
+      - backend
+    expose:
+      - 9000
+    working_dir: /var/www/html
+    volumes:
+      - ./data/php/conf.d/custom.ini:/etc/php/7.4/cli/conf.d/80-custom.ini
+      - ${PROJECT}:/var/www/html
+    restart: always
+    depends_on:
+      - mysql
+
+  mysql:
+    container_name: mysql
+    networks:
+      - backend
+    ports:
+      - "3306:3306"
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: ${APPLICATION}
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+    volumes:
+      - ./mysql/data/5.7:/var/lib/mysql
+    # For mysql 5.x version
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --innodb_use_native_aio=0
+  
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin:4.8
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: admin
