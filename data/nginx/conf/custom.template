@@ -5,7 +5,7 @@ server {
     server_tokens off;
 
     charset utf-8;
-    root  /var/www/html/${APP_NAME};
+    root  /var/www/html/${APP_NAME}/webroot;
     index index.php index.html index.htm;
 
     location = /favicon.ico { access_log off; log_not_found off; }
